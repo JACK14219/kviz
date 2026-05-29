@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Prémiový Kvíz o Velké Británii</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            background-color: #1a1a1a;
+        }
+
+        body {
+            background-image: url('https://www.vlajky.eu/vlajky/93/VB.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+
+        /* Univerzální vrstva pro jemné probliknutí */
+        #flash-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease-out, background-color 0.4s ease-out;
+            z-index: 9999;
+        }
+
+        /* Jemné pastelové barvy s vysokou průhledností */
+        .flash-green {
+            background: radial-gradient(circle, rgba(134, 239, 172, 0.25) 0%, rgba(74, 222, 128, 0.15) 100%);
+            opacity: 1 !important;
+        }
+
+        .flash-red {
+            background: radial-gradient(circle, rgba(252, 165, 165, 0.3) 0%, rgba(248, 113, 113, 0.15) 100%);
+            opacity: 1 !important;
+        }
+
+        /* Vyladěné, velmi přirozené zatřesení */
+        @keyframes soft-shake {
+            0% { transform: translateX(0); }
+            15% { transform: translateX(-12px); }
+            30% { transform: translateX(10px); }
+            45% { transform: translateX(-8px); }
+            60% { transform: translateX(5px); }
+            75% { transform: translateX(-2px); }
+            100% { transform: translateX(0); }
+        }
+
+        .shake-active {
+            animation: soft-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* Pozitivní puls pro správnou odpověď */
+        @keyframes soft-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        .pulse-active {
+            animation: soft-pulse 0.4s ease-out both;
+        }
+
+        /* Hlavní kontejner */
+        .quiz-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            padding: 35px 25px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Efekt pro plynulé zmizení/objevení obsahu */
+        .fade-content {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .show-content {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        h1 {
+            color: #00247D;
+            margin-bottom: 8px;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 800;
+        }
+
+        .progress {
+            font-size: 0.95rem;
+            color: #cf142b;
+            font-weight: 700;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .question {
+            font-size: 1.35rem;
+            color: #1f2937;
+            font-weight: 600;
+            margin-bottom: 30px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.4;
+        }
+
+        .options-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            margin-bottom: 10px;
+        }
+
+        .btn {
+            background-color: #f9fafb;
+            color: #00247D;
+            border: 2px solid #e5e7eb;
+            padding: 16px 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+            user-select: none; 
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+            background-color: #f3f4f6;
+            border-color: #d1d5db;
+        }
+
+        @media (hover: hover) {
+            .btn:hover {
+                background-color: #00247D;
+                color: #ffffff;
+                border-color: #00247D;
+                box-shadow: 0 6px 12px rgba(0, 36, 125, 0.2);
+                transform: translateY(-2px);
+            }
+        }
+
+        .result-container {
+            display: none;
+        }
+
+        .score-text {
+            font-size: 1.7rem;
+            margin-bottom: 30px;
+            color: #1f2937;
+            font-weight: bold;
+        }
+
+        .restart-btn {
+            background-color: #cf142b;
+            color: white;
+            border: none;
+            padding: 18px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(207, 20, 43, 0.3);
+        }
+
+        .restart-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 10px rgba(207, 20, 43, 0.3);
+        }
+
+        @media (max-width: 400px) {
+            h1 { font-size: 1.5rem; }
+            .question { font-size: 1.15rem; min-height: 70px; }
+            .btn { padding: 14px 10px; font-size: 1rem; }
+            .quiz-container { padding: 25px 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Vrstva pro jemné barevné probliknutí -->
+<div id="flash-overlay"></div>
+
+<div class="quiz-container" id="quiz-container">
+    <div id="quiz-box">
+        <h1>Velká Británie</h1>
+        <div class="progress" id="progress">Otázka 1 z 10</div>
+        
+        <!-- Wrapper pro plynulé prolínání textu a tlačítek -->
+        <div id="content-wrapper" class="show-content">
+            <div class="question" id="question">Načítání otázky...</div>
+            <div class="options-container" id="options">
+                <!-- Tlačítka vygeneruje JS -->
+            </div>
+        </div>
+    </div>
+
+    <div id="result-box" class="result-container">
+        <h1>Konec kvízu!</h1>
+        <p class="score-text" id="score-text">Tvůj výsledek: 0 / 10</p>
+        <button class="restart-btn" onclick="restartQuiz()">Zkusit znovu</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { question: "Jaké je hlavní město Spojeného království?", options: ["Edinburgh", "Londýn", "Cardiff", "Manchester"], correct: 1 },
+        { question: "Jaká měna se používá ve Velké Británii?", options: ["Euro", "Americký dolar", "Britská libra", "Zlatý frank"], correct: 2 },
+        { question: "Která řeka protéká Londýnem?", options: ["Temže", "Severn", "Trent", "Avon"], correct: 0 },
+        { question: "Jak se lidově přezdívá britské vlajce?", options: ["Stars and Stripes", "Tricolour", "Jolly Roger", "Union Jack"], correct: 3 },
+        { question: "Kdo je současným panovníkem?", options: ["Královna Alžběta II.", "Král Karel III.", "Princ William", "Král Jiří VI."], correct: 1 },
+        { question: "Jak se jmenuje slavný pravěký kruh z kamenů na jihu Anglie?", options: ["Stonehenge", "Hadriánův val", "Loch Ness", "Big Ben"], correct: 0 },
+        { question: "Jak se jmenuje nejvyšší hora Velké Británie?", options: ["Snowdon", "Scafell Pike", "Ben Nevis", "Slieve Donard"], correct: 2 },
+        { question: "Na jaké adrese v Londýně sídlí britský premiér?", options: ["Baker Street 221B", "Downing Street 10", "Abbey Road", "Trafalgar Square"], correct: 1 },
+        { question: "Která z těchto zemí NENÍ součástí ostrova Velká Británie?", options: ["Anglie", "Skotsko", "Wales", "Severní Irsko"], correct: 3 },
+        { question: "Jaké je legendární jméno zbojníka ze Sherwoodského lesa?", options: ["Král Artuš", "Sherlock Holmes", "Robin Hood", "Jack Rozparovač"], correct: 2 }
+    ];
+
+    let currentQuestion = 0;
+    let score = 0;
+    let isAnimating = false;
+
+    const quizContainer = document.getElementById('quiz-container');
+    const quizBox = document.getElementById('quiz-box');
+    const contentWrapper = document.getElementById('content-wrapper');
+    const resultBox = document.getElementById('result-box');
+    const questionEl = document.getElementById('question');
+    const optionsContainer = document.getElementById('options');
+    const progressEl = document.getElementById('progress');
+    const scoreTextEl = document.getElementById('score-text');
+    const flashOverlay = document.getElementById('flash-overlay');
+
+    function loadQuiz() {
+        if (currentQuestion < quizData.length) {
+            progressEl.innerText = `Otázka ${currentQuestion + 1} z ${quizData.length}`;
+            questionEl.innerText = quizData[currentQuestion].question;
+            optionsContainer.innerHTML = '';
+            
+            quizData[currentQuestion].options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.classList.add('btn');
+                button.innerText = option;
+                button.addEventListener('click', () => selectAnswer(index));
+                optionsContainer.appendChild(button);
+            });
+
+            // Necháme obsah plynule objevit
+            contentWrapper.classList.add('show-content');
+            contentWrapper.classList.remove('fade-content');
+            isAnimating = false;
+
+        } else {
+            showResults();
+        }
+    }
+
+    function selectAnswer(selectedIndex) {
+        if (isAnimating) return;
+        isAnimating = true;
+
+        const isCorrect = (selectedIndex === quizData[currentQuestion].correct);
+
+        if (isCorrect) {
+            score++;
+            // Jemná zelená a pozitivní puls
+            flashOverlay.classList.add('flash-green');
+            quizContainer.classList.add('pulse-active');
+            
+            setTimeout(() => {
+                flashOverlay.classList.remove('flash-green');
+                quizContainer.classList.remove('pulse-active');
+            }, 400);
+        } else {
+            // Jemná červená a plynulé zatřesení
+            flashOverlay.classList.add('flash-red');
+            quizContainer.classList.add('shake-active');
+            
+            setTimeout(() => {
+                flashOverlay.classList.remove('flash-red');
+                quizContainer.classList.remove('shake-active');
+            }, 500);
+        }
+        
+        currentQuestion++;
+        
+        // Začne skrývat aktuální otázku těsně před koncem efektu
+        setTimeout(() => {
+            contentWrapper.classList.remove('show-content');
+            contentWrapper.classList.add('fade-content');
+            
+            // Jakmile zmizí, načteme nová data a zobrazíme
+            setTimeout(() => {
+                loadQuiz();
+            }, 300);
+            
+        }, 500);
+    }
+
+    function showResults() {
+        quizBox.style.display = 'none';
+        resultBox.style.display = 'block';
+        
+        let message = "";
+        if (score === 10) message = "Perfektní znalosti! 🏆";
+        else if (score >= 7) message = "Velmi dobrý výsledek! 👍";
+        else if (score >= 4) message = "Základy ovládáš. 🙂";
+        else message = "Možná to chce opáčko. 📖";
+
+        scoreTextEl.innerHTML = `Tvůj výsledek: <br> <span style="font-size:2.5rem; color:#00247D;">${score}</span> / ${quizData.length} <br><br> <span style="font-size:1.1rem; color:#4b5563;">${message}</span>`;
+    }
+
+    function restartQuiz() {
+        currentQuestion = 0;
+        score = 0;
+        resultBox.style.display = 'none';
+        quizBox.style.display = 'block';
+        contentWrapper.classList.add('show-content');
+        contentWrapper.classList.remove('fade-content');
+        loadQuiz();
+    }
+
+    loadQuiz();
+</script>
+
+</body>
+</html>
